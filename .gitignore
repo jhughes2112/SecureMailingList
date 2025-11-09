@@ -1,0 +1,13 @@
+**/obj/
+**/.vs/
+**/bin/
+**/Library/
+**/Temp/
+**/Build/
+**/Logs/
+**/publish/
+*.user
+userpass.txt
+**/launchSettings.json
+/test.bat
+/run-with-api-key.bat

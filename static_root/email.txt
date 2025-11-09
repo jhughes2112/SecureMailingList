@@ -1,0 +1,9 @@
+Hi {{USERNAME}},
+
+You requested a change to your mailing list subscription.
+Click the link below to confirm your email and apply the change:
+
+{{LINK}}
+
+If the link above doesn’t work, copy and paste it into your browser.
+If you did not request this change, you can safely ignore this email.

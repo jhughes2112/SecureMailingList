@@ -1,0 +1,5 @@
+﻿# We don't want these files copied to our Docker images, because it messes up the build.
+**/*.meta
+**/obj/
+**/bin/
+**/launchSettings.json

@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Stay In Touch!</title>
+    <style>
+      :root{
+        --bg:#0f172a;
+        --card-grad: radial-gradient(1200px 600px at 0% -10%,#eef2ff,#ffffff 50%);
+        --frame-grad: linear-gradient(135deg,#a5b4fc,#7dd3fc,#86efac);
+        --bd:#d1d5db;
+        --focus:#60a5fa;
+        --txt:#0b1220;
+
+        --btn-blue: linear-gradient(180deg,#60a5fa,#3b82f6);
+        --btn-green: linear-gradient(180deg,#34d399,#10b981);
+        --btn-red: linear-gradient(180deg,#fee2e2,#fecaca);
+      }
+      html,body{height:100%}
+      body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);}
+
+      .frame{max-width:640px;margin:64px auto 20px;padding:2px;border-radius:18px;background:var(--frame-grad);}
+      .card{border-radius:16px;padding:22px 24px;background:var(--card-grad);box-shadow:0 16px 40px rgba(0,0,0,.18);}
+      .title{margin:0;font-size:22px;letter-spacing:.2px;color:var(--txt)}
+
+      .chips{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px}
+      .chip{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:999px;cursor:pointer;transition:transform .05s,box-shadow .15s,background .2s,border-color .2s}
+      .chip input{margin:0}
+      .chip:hover{transform:translateY(-1px)}
+      .chip--ann{border:1px solid #c7d2fe;background:#eef2ff}
+      .chip--book{border:1px solid #bae6fd;background:#f0f9ff}
+      .chip--game{border:1px solid #bbf7d0;background:#f0fdf4}
+      .chip--pod{border:1px solid #fde68a;background:#fffbeb}
+      .chip.is-off{background:#fafafa;border-color:#e5e7eb;box-shadow:none}
+
+      .row{display:flex;gap:10px;align-items:center}
+      .in{
+        flex:1;padding:12px 14px;border:1px solid var(--bd);border-radius:12px;outline:0;
+        box-shadow:0 1px 0 rgba(0,0,0,.02) inset;transition:border-color .2s,box-shadow .2s
+      }
+      .in:focus{border-color:var(--focus);box-shadow:0 0 0 3px rgba(59,130,246,.18),0 1px 0 rgba(0,0,0,.02) inset}
+
+      .btn{
+        white-space:nowrap;padding:12px 16px;border:0;border-radius:12px;color:#fff;
+        box-shadow:0 8px 16px rgba(0,0,0,.18), inset 0 0 0 1px rgba(0,0,0,.08);
+        transition:opacity .15s,transform .05s,filter .2s; cursor:pointer
+      }
+      .btn:disabled{opacity:.55;cursor:not-allowed;filter:saturate(.7)}
+      .btn:hover:not(:disabled){filter:brightness(1.05) saturate(1.1)}
+      .btn:active:not(:disabled){transform:translateY(1px)}
+      .btn--blue{background:var(--btn-blue)}
+      .btn--green{background:var(--btn-green)}
+      .btn--red{background:var(--btn-red);color:#7f1d1d;border:1px solid #fecaca}
+
+      .toast-root{position:fixed;left:0;right:0;bottom:24px;display:flex;justify-content:center;pointer-events:none}
+      .toast{
+        max-width:90vw;pointer-events:auto;padding:10px 14px;border-radius:12px;color:#fff;font-size:14px;
+        box-shadow:0 10px 24px rgba(0,0,0,.25);opacity:0;transform:translateY(8px);
+        transition:opacity .25s ease, transform .25s ease
+      }
+      .toast--ok{background:linear-gradient(180deg,#22c55e,#16a34a)}
+      .toast--err{background:linear-gradient(180deg,#fca5a5,#ef4444)}
+      .toast.show{opacity:1;transform:translateY(0)}
+
+      .footer-gap{margin-bottom:64px}
+      h2{margin:0;font-size:18px;color:var(--txt)}
+    </style>
+  </head>
+  <body>
+    <!-- Card 1 -->
+    <div class="frame">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h1 class="title">Stay In Touch!</h1>
+        </div>
+
+        <div id="chips" class="chips">
+          <label id="lbl-ann" class="chip chip--ann"><input id="ann" type="checkbox" checked /><span>Announcements</span></label>
+          <label id="lbl-book" class="chip chip--book"><input id="book" type="checkbox" checked /><span>Book</span></label>
+          <label id="lbl-game" class="chip chip--game"><input id="game" type="checkbox" checked /><span>Game</span></label>
+          <label id="lbl-pod"  class="chip chip--pod"><input id="pod"  type="checkbox" checked /><span>Podcast</span></label>
+          <button id="unsub" type="button" class="btn btn--red" style="margin-left:auto">Unsubscribe</button>
+        </div>
+
+        <div class="row">
+          <input id="fullname" class="in" type="text" placeholder="Full name" />
+          <input id="email" class="in" type="email" placeholder="Email address" />
+          <button id="submitBtn" class="btn btn--blue" type="button" disabled>Submit</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="frame footer-gap">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h2>Download Email List</h2>
+        </div>
+
+        <div class="row">
+          <input id="dlpass" class="in" type="password" placeholder="download_password" />
+          <button id="getListBtn" class="btn btn--green" type="button" disabled>Get Email List</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- toast container -->
+    <div id="toast-root" class="toast-root"></div>
+
+    <script>
+      const el = (id) => document.getElementById(id);
+      const emailEl = el('email');
+      const nameEl = el('fullname');
+      const annEl = el('ann');
+      const bookEl = el('book');
+      const gameEl = el('game');
+      const podEl  = el('pod');
+      const unsubBtn = el('unsub');
+      const submitBtn = el('submitBtn');
+      const dlpassEl = el('dlpass');
+      const getListBtn = el('getListBtn');
+      const lblAnn = el('lbl-ann');
+      const lblBook = el('lbl-book');
+      const lblGame = el('lbl-game');
+      const lblPod  = el('lbl-pod');
+      const toastRoot = el('toast-root');
+
+      const looksLikeEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
+
+      function updateSubmitState(){
+        const ok = looksLikeEmail(emailEl.value);
+        submitBtn.disabled = !ok;
+      }
+      function updatePassState(){
+        const ok = dlpassEl.value.trim().length > 0;
+        getListBtn.disabled = !ok;
+      }
+
+      function refreshChips(){
+        lblAnn.classList.toggle('is-off', !annEl.checked);
+        lblBook.classList.toggle('is-off', !bookEl.checked);
+        lblGame.classList.toggle('is-off', !gameEl.checked);
+        lblPod .classList.toggle('is-off', !podEl.checked);
+      }
+
+      unsubBtn.addEventListener('click', () => {
+        annEl.checked = bookEl.checked = gameEl.checked = podEl.checked = false;
+        refreshChips();
+      });
+
+      function base64url(str){
+        let b64 = btoa(str).replace(/\+/g,'-').replace(/\//g,'_');
+        while (b64.length % 4) b64 += '=';
+        return b64;
+      }
+
+      function showToast(text, ok=true){
+        const n = document.createElement('div');
+        n.className = 'toast ' + (ok ? 'toast--ok' : 'toast--err');
+        n.textContent = text;
+        toastRoot.appendChild(n);
+        requestAnimationFrame(() => n.classList.add('show'));
+        setTimeout(() => n.classList.remove('show'), 2200);
+        setTimeout(() => n.remove(), 2600);
+      }
+
+      async function getAndToast(url, clearFn){
+        try{
+          const res = await fetch(url, { method:'GET' });
+          if(res.ok){
+            const txt = (await res.text()).trim() || 'OK';
+            showToast(txt, true);
+            clearFn && clearFn();
+          }else{
+            showToast(`Error ${res.status}`, false);
+          }
+        }catch{
+          showToast('Submitted', true);
+          clearFn && clearFn();
+        }
+      }
+
+      submitBtn.addEventListener('click', () => {
+        if (submitBtn.disabled) return;
+        const email = emailEl.value.trim();
+        const fullname = nameEl.value.trim();
+        const fields = [`"${email}"`,`"${fullname}"`];
+        if (annEl.checked)  fields.push(`"announcements"`);
+        if (bookEl.checked) fields.push(`"book"`);
+        if (gameEl.checked) fields.push(`"game"`);
+        if (podEl.checked)  fields.push(`"podcast"`);
+        const r = base64url(fields.join(','));
+        const url = `http://localhost:18888/?r=${encodeURIComponent(r)}`;
+
+        getAndToast(url, () => {
+          nameEl.value = '';
+          emailEl.value = '';
+          updateSubmitState();
+        });
+      });
+
+      getListBtn.addEventListener('click', async () => {
+        if (getListBtn.disabled) return;
+        const v = encodeURIComponent(dlpassEl.value.trim());
+        const url = `http://localhost:18888/?d=${v}`;
+
+        try{
+          const res = await fetch(url, { method:'HEAD' }); // needs CORS on server
+          if(!res.ok){ showToast(`Error ${res.status}`, false); return; }
+
+          const cd = (res.headers.get('Content-Disposition') || '').toLowerCase();
+          const ct = (res.headers.get('Content-Type') || '').toLowerCase();
+          const looksLikeFile =
+            cd.includes('attachment') ||
+            /^text\/csv/.test(ct) ||
+            /^application\/(octet-stream|zip|pdf)/.test(ct);
+
+          if(!looksLikeFile){ showToast('No downloadable file', false); return; }
+
+          dlpassEl.value = '';
+          updatePassState();
+
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = '';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }catch{
+          showToast('Download failed', false);
+        }
+      });
+
+      [emailEl].forEach(i => i.addEventListener('input', updateSubmitState));
+      [dlpassEl].forEach(i => i.addEventListener('input', updatePassState));
+      [annEl,bookEl,gameEl,podEl].forEach(c => c.addEventListener('change', refreshChips));
+
+      updateSubmitState();
+      updatePassState();
+      refreshChips();
+    </script>
+  </body>
+</html>
