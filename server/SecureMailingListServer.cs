@@ -43,6 +43,8 @@ namespace SecureMailingList
 		// This is a rate limiter by IP address, to prevent mail bombing.
 		private readonly ThreadSafeDictionary<string, MutableLong> _ipCounts = new ThreadSafeDictionary<string, MutableLong>();
 
+		private readonly Timer _cleanupTimer;
+
 		private readonly StringSigner _stringSigner;
 		private readonly string _publicKey;
 
@@ -65,6 +67,9 @@ namespace SecureMailingList
 			_stringSigner = new StringSigner();
 			_publicKey = _stringSigner.GetPublicKey();
 
+			// Start cleanup timer to remove expired IP entries every 60 seconds
+			_cleanupTimer = new Timer(CleanupExpiredEntries, null, 60000, 60000);
+
 			// Create metrics
 			_dataCollection.CreateCounter(kAddRequestsCounter, "Total add email requests");
 			_dataCollection.CreateCounter(kEmailSentCounter, "Emails sent successfully");
@@ -78,6 +83,7 @@ namespace SecureMailingList
 		public Task Shutdown()
 		{
 			_logger.Log(EVerbosity.Info, "Server shutting down.");
+			_cleanupTimer?.Dispose();
 			_logger.Log(EVerbosity.Info, "Server shutdown complete.");
 			return Task.CompletedTask;
 		}
@@ -154,26 +160,17 @@ namespace SecureMailingList
 				string email = parts[0];
 
 				// Check if IP has recent request
-				if (_ipCounts.ContainsKey(ip))
-				{
-					_logger.Log(EVerbosity.Info, $"Too many requests for email: {email}");
-					return (429, "text/plain", Encoding.UTF8.GetBytes("Too many requests"));
-				}
-
 				long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-				_ipCounts.Add(ip, new MutableLong { Value = now });
-				// Start timer to remove if older than 1 minute
-				new Timer(state =>
+				if (_ipCounts.TryGetValue(ip, out MutableLong? val) && val.Value > now)
 				{
-					if (_ipCounts.TryGetValue(ip, out MutableLong? val))
-					{
-						long current = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-						if (current - val.Value >= 60)
-						{
-							_ipCounts.TryRemove(ip, out _);
-						}
-					}
-				}, null, 60000, Timeout.Infinite);
+					long remaining = val.Value - now;
+					_logger.Log(EVerbosity.Info, $"Too many requests for email: {email}, remaining {remaining} seconds");
+					return (429, "text/plain", Encoding.UTF8.GetBytes($"Too many requests. Try again in {remaining} seconds."));
+				}
+				else
+				{
+					_ipCounts.AddOrUpdate(ip, new MutableLong { Value = now + 60 });
+				}
 
 				string fullname = parts[1];
 				List<string> tags = new List<string>();
@@ -316,6 +313,27 @@ namespace SecureMailingList
 			foreach (IEmailList list in _emailLists)
 			{
 				await list.Read(_emailList).ConfigureAwait(false);
+			}
+		}
+
+		private void CleanupExpiredEntries(object? state)
+		{
+			long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+			List<string> toRemove = new List<string>();
+			_ipCounts.Foreach((ip, val) =>
+			{
+				if (val.Value <= now)
+				{
+					toRemove.Add(ip);
+				}
+			});
+			foreach (string ip in toRemove)
+			{
+				_ipCounts.TryRemove(ip, out _);
+			}
+			if (toRemove.Count>0)
+			{
+				_logger.Log(EVerbosity.Info, $"Cleaned up {toRemove.Count} expired IP entries");
 			}
 		}
 
